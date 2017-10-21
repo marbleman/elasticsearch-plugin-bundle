@@ -1,25 +1,3 @@
-/*
- * Copyright (C) 2014 Jörg Prante
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published
- * by the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program; if not, see http://www.gnu.org/licenses
- * or write to the Free Software Foundation, Inc., 51 Franklin Street,
- * Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * The interactive user interfaces in modified source and object code
- * versions of this program must display Appropriate Legal Notices,
- * as required under Section 5 of the GNU Affero General Public License.
- *
- */
 package org.xbib.elasticsearch.common.standardnumber;
 
 import java.util.regex.Matcher;
@@ -30,11 +8,10 @@ import java.util.regex.Pattern;
  *
  * A catalog record numbering system, uniquely identifying records, used by PICA
  * (Project voor geIntegreerde Catalogus Automatisering) integrated library systems.
- *
  */
 public class PPN extends AbstractStandardNumber implements Comparable<PPN>, StandardNumber {
 
-    private final static Pattern PATTERN = Pattern.compile("[\\p{Digit}]{3,10}\\p{Pd}{0,1}[\\p{Digit}xX]{1}\\b");
+    private static final Pattern PATTERN = Pattern.compile("[\\p{Digit}]{3,10}\\p{Pd}{0,1}[\\p{Digit}xX]{1}\\b");
 
     private String value;
 
@@ -84,7 +61,7 @@ public class PPN extends AbstractStandardNumber implements Comparable<PPN>, Stan
     }
 
     @Override
-    public PPN verify() throws NumberFormatException {
+    public PPN verify() {
         if (value == null || value.isEmpty()) {
             throw new NumberFormatException("invalid");
         }
@@ -98,7 +75,7 @@ public class PPN extends AbstractStandardNumber implements Comparable<PPN>, Stan
     public String format() {
         if (formatted == null) {
             StringBuilder sb = new StringBuilder(value);
-            this.formatted = sb.insert(sb.length()-1,"-").toString();
+            this.formatted = sb.insert(sb.length() - 1, "-").toString();
         }
         return formatted;
     }
@@ -121,7 +98,7 @@ public class PPN extends AbstractStandardNumber implements Comparable<PPN>, Stan
             checksum += val * weight++;
         }
         if (createWithChecksum) {
-            char ch = checksum % 11 == 10 ? 'X' : (char)('0' + (checksum % 11));
+            char ch = checksum % 11 == 10 ? 'X' : (char) ('0' + (checksum % 11));
             value = value.substring(0, l) + ch;
         }
         return 11 - checksum % 11 ==
@@ -136,5 +113,15 @@ public class PPN extends AbstractStandardNumber implements Comparable<PPN>, Stan
             i = sb.indexOf("-");
         }
         return sb.toString();
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        return object instanceof PPN && value.equals(((PPN)object).value);
+    }
+
+    @Override
+    public int hashCode() {
+        return value.hashCode();
     }
 }

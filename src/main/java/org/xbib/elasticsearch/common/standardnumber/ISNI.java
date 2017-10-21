@@ -1,25 +1,3 @@
-/*
- * Copyright (C) 2014 Jörg Prante
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published
- * by the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program; if not, see http://www.gnu.org/licenses
- * or write to the Free Software Foundation, Inc., 51 Franklin Street,
- * Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * The interactive user interfaces in modified source and object code
- * versions of this program must display Appropriate Legal Notices,
- * as required under Section 5 of the GNU Affero General Public License.
- *
- */
 package org.xbib.elasticsearch.common.standardnumber;
 
 import org.xbib.elasticsearch.common.standardnumber.check.iso7064.MOD112;
@@ -39,9 +17,11 @@ import java.util.regex.Pattern;
  */
 public class ISNI extends AbstractStandardNumber implements Comparable<ISNI>, StandardNumber {
 
-    private final static Pattern PATTERN = Pattern.compile("[\\p{Digit}xX\\p{Pd}\\s]{16,24}");
+    private static final Pattern PATTERN = Pattern.compile("[\\p{Digit}xX\\p{Pd}\\s]{16,24}");
 
-    private String value;
+    private static final MOD112 check = new MOD112();
+
+    protected String value;
 
     private String formatted;
 
@@ -80,15 +60,16 @@ public class ISNI extends AbstractStandardNumber implements Comparable<ISNI>, St
     }
 
     @Override
-    public ISNI verify() throws NumberFormatException {
+    public ISNI verify() {
         if (!check()) {
-            throw new NumberFormatException("bad createChecksum");
+            throw new NumberFormatException("bad checksum");
         }
         return this;
     }
 
     /**
      * Returns the value representation of the standard number
+     *
      * @return value
      */
     @Override
@@ -126,8 +107,6 @@ public class ISNI extends AbstractStandardNumber implements Comparable<ISNI>, St
         return this;
     }
 
-    private final static MOD112 check = new MOD112();
-
     private boolean check() {
         if (createWithChecksum) {
             this.value = check.encode(value.length() < 16 ? value : value.substring(0, value.length() - 1));
@@ -150,4 +129,13 @@ public class ISNI extends AbstractStandardNumber implements Comparable<ISNI>, St
         return sb.toString();
     }
 
+    @Override
+    public boolean equals(Object object) {
+        return object instanceof ISNI && value.equals(((ISNI)object).value);
+    }
+
+    @Override
+    public int hashCode() {
+        return value.hashCode();
+    }
 }

@@ -1,25 +1,3 @@
-/*
- * Copyright (C) 2014 Jörg Prante
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published
- * by the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program; if not, see http://www.gnu.org/licenses
- * or write to the Free Software Foundation, Inc., 51 Franklin Street,
- * Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * The interactive user interfaces in modified source and object code
- * versions of this program must display Appropriate Legal Notices,
- * as required under Section 5 of the GNU Affero General Public License.
- *
- */
 package org.xbib.elasticsearch.common.standardnumber;
 
 import java.util.regex.Matcher;
@@ -44,7 +22,6 @@ import java.util.regex.Pattern;
  * The standard was formally published in March 2009
  *
  * Checksum algorithm is ISO 7064 MOD 16/3
- *
  */
 public class ISTC extends AbstractStandardNumber implements Comparable<ISTC>, StandardNumber {
 
@@ -93,12 +70,12 @@ public class ISTC extends AbstractStandardNumber implements Comparable<ISTC>, St
     }
 
     @Override
-    public ISTC verify() throws NumberFormatException {
+    public ISTC verify() {
         if (value == null || value.isEmpty()) {
             throw new NumberFormatException("invalid");
         }
         if (!check()) {
-            throw new NumberFormatException("bad createChecksum");
+            throw new NumberFormatException("bad checksum");
         }
         return this;
     }
@@ -141,11 +118,11 @@ public class ISTC extends AbstractStandardNumber implements Comparable<ISTC>, St
         }
         int chk = checksum % 16;
         if (createWithChecksum) {
-            char ch = chk > 9 ? (char)(10 + (chk - 'A')) : (char)('0' + chk);
+            char ch = chk > 9 ? (char) (10 + (chk - 'A')) : (char) ('0' + chk);
             value = value.substring(0, l) + ch;
         }
         char digit = value.charAt(l);
-        int chk2 = (digit >= '0' && digit <= '9') ? digit - '0' : digit -'A' + 10;
+        int chk2 = (digit >= '0' && digit <= '9') ? digit - '0' : digit - 'A' + 10;
         return chk == chk2;
     }
 
@@ -169,11 +146,21 @@ public class ISTC extends AbstractStandardNumber implements Comparable<ISTC>, St
         }
         if (sb.length() > 15) {
             this.formatted = "ISTC "
-                + sb.substring(0,3) + "-"
-                + sb.substring(3,7) + "-"
-                + sb.substring(7,15) + "-"
-                + sb.substring(15);
+                    + sb.substring(0, 3) + "-"
+                    + sb.substring(3, 7) + "-"
+                    + sb.substring(7, 15) + "-"
+                    + sb.substring(15);
         }
         return sb.toString();
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        return object instanceof ISTC && value.equals(((ISTC)object).value);
+    }
+
+    @Override
+    public int hashCode() {
+        return value.hashCode();
     }
 }

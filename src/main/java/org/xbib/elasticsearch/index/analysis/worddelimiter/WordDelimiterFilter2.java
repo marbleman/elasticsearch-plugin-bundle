@@ -7,7 +7,6 @@ import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 import org.apache.lucene.util.ArrayUtil;
-import org.apache.lucene.util.RamUsageEstimator;
 
 import java.io.IOException;
 import java.util.Set;
@@ -29,15 +28,19 @@ import java.util.Set;
  * The combinations parameter affects how subwords are combined:
  * - combinations="0" causes no subword combinations.
  * - "PowerShot" -&gt; 0:"Power", 1:"Shot"  (0 and 1 are the token positions)
- * - combinations="1" means that in addition to the subwords, maximum runs of non-numeric subwords are catenated and produced at the same position of the last subword in the run.
+ * - combinations="1" means that in addition to the subwords, maximum runs of non-numeric subwords are catenated and
+ * produced at the same position of the last subword in the run.
  * - "PowerShot" -&gt; 0:"Power", 1:"Shot" 1:"PowerShot"
  * - "A's+B's&amp;C's" -&gt; 0:"A", 1:"B", 2:"C", 2:"ABC"
- * - "Super-Duper-XL500-42-AutoCoder!" -&gt; 0:"Super", 1:"Duper", 2:"XL", 2:"SuperDuperXL", 3:"500" 4:"42", 5:"Auto", 6:"Coder", 6:"AutoCoder"
+ * - "Super-Duper-XL500-42-AutoCoder!" -&gt; 0:"Super", 1:"Duper", 2:"XL", 2:"SuperDuperXL", 3:"500" 4:"42", 5:"Auto",
+ * 6:"Coder", 6:"AutoCoder"
  * One use for WordDelimiterFilter2 is to help match words with different subword delimiters.
  * For example, if the source text contained "wi-fi" one may want "wifi" "WiFi" "wi-fi" "wi+fi" queries to all match.
- * One way of doing so is to specify combinations="1" in the analyzer used for indexing, and combinations="0" (the default)
+ * One way of doing so is to specify combinations="1" in the analyzer used for indexing, and combinations="0" (the
+ * default)
  * in the analyzer used for querying.  Given that the current StandardTokenizer immediately removes many intra-word
- * delimiters, it is recommended that this filter be used after a tokenizer that does not do this (such as WhitespaceTokenizer).
+ * delimiters, it is recommended that this filter be used after a tokenizer that does not do this (such as
+ * WhitespaceTokenizer).
  * The difference with WordDelimiterFilter is the new ALL_PARTS_AT_SAME_POSITION flag.
  * It permits to analyze "PowerShot" into 0:"Power", 0:"Shot", where 0: stands for the token positions.
  */
@@ -61,12 +64,10 @@ public final class WordDelimiterFilter2 extends TokenFilter implements WordDelim
 
     // used for concatenating runs of similar typed subwords (word,number)
     private final WordDelimiterConcatenation concat = new WordDelimiterConcatenation();
-    // number of subwords last output by concat.
-    private int lastConcatCount = 0;
-
     // used for catenate all
     private final WordDelimiterConcatenation concatAll = new WordDelimiterConcatenation();
-
+    // number of subwords last output by concat.
+    private int lastConcatCount = 0;
     // used for accumulating position increment gaps
     private int accumPosInc = 0;
 
@@ -97,8 +98,7 @@ public final class WordDelimiterFilter2 extends TokenFilter implements WordDelim
         super(in);
         this.flags = configurationFlags;
         this.protWords = protWords;
-        this.iterator = new WordDelimiterIterator(
-                charTypeTable, has(SPLIT_ON_CASE_CHANGE), has(SPLIT_ON_NUMERICS), has(STEM_ENGLISH_POSSESSIVE));
+        this.iterator = new WordDelimiterIterator(charTypeTable, has(SPLIT_ON_CASE_CHANGE), has(SPLIT_ON_NUMERICS), has(STEM_ENGLISH_POSSESSIVE));
     }
 
     /**
@@ -111,6 +111,46 @@ public final class WordDelimiterFilter2 extends TokenFilter implements WordDelim
      */
     public WordDelimiterFilter2(TokenStream in, int configurationFlags, Set<String> protWords) {
         this(in, WordDelimiterIterator.DEFAULT_WORD_DELIM_TABLE, configurationFlags, protWords);
+    }
+
+    /**
+     * Checks if the given word type includes {@link #ALPHA}
+     *
+     * @param type Word type to check
+     * @return {@code true} if the type contains ALPHA, {@code false} otherwise
+     */
+    static boolean isAlpha(int type) {
+        return (type & ALPHA) != 0;
+    }
+
+    /**
+     * Checks if the given word type includes {@link #DIGIT}
+     *
+     * @param type Word type to check
+     * @return {@code true} if the type contains DIGIT, {@code false} otherwise
+     */
+    static boolean isDigit(int type) {
+        return (type & DIGIT) != 0;
+    }
+
+    /**
+     * Checks if the given word type includes {@link #SUBWORD_DELIM}
+     *
+     * @param type Word type to check
+     * @return {@code true} if the type contains SUBWORD_DELIM, {@code false} otherwise
+     */
+    static boolean isSubwordDelim(int type) {
+        return (type & SUBWORD_DELIM) != 0;
+    }
+
+    /**
+     * Checks if the given word type includes {@link #UPPER}
+     *
+     * @param type Word type to check
+     * @return {@code true} if the type contains UPPER, {@code false} otherwise
+     */
+    static boolean isUpper(int type) {
+        return (type & UPPER) != 0;
     }
 
     @Override
@@ -162,10 +202,8 @@ public final class WordDelimiterFilter2 extends TokenFilter implements WordDelim
 
             // at the end of the string, output any concatenations
             if (iterator.end == WordDelimiterIterator.DONE) {
-                if (!concat.isEmpty()) {
-                    if (flushConcatenation(concat)) {
-                        return true;
-                    }
+                if (!concat.isEmpty() && flushConcatenation(concat)) {
+                    return true;
                 }
 
                 if (!concatAll.isEmpty()) {
@@ -244,11 +282,11 @@ public final class WordDelimiterFilter2 extends TokenFilter implements WordDelim
         savedStartOffset = offsetAttribute.startOffset();
         savedEndOffset = offsetAttribute.endOffset();
         // if length by start + end offsets doesn't match the term text then assume this is a synonym and don't adjust the offsets.
-        hasIllegalOffsets = (savedEndOffset - savedStartOffset != termAttribute.length());
+        hasIllegalOffsets = savedEndOffset - savedStartOffset != termAttribute.length();
         savedType = typeAttribute.type();
 
         if (savedBuffer.length < termAttribute.length()) {
-            savedBuffer = new char[ArrayUtil.oversize(termAttribute.length(), RamUsageEstimator.NUM_BYTES_CHAR)];
+            savedBuffer = new char[ArrayUtil.oversize(termAttribute.length(), Character.BYTES)];
         }
 
         System.arraycopy(termAttribute.buffer(), 0, savedBuffer, 0, termAttribute.length());
@@ -362,46 +400,6 @@ public final class WordDelimiterFilter2 extends TokenFilter implements WordDelim
     }
 
     /**
-     * Checks if the given word type includes {@link #ALPHA}
-     *
-     * @param type Word type to check
-     * @return {@code true} if the type contains ALPHA, {@code false} otherwise
-     */
-    static boolean isAlpha(int type) {
-        return (type & ALPHA) != 0;
-    }
-
-    /**
-     * Checks if the given word type includes {@link #DIGIT}
-     *
-     * @param type Word type to check
-     * @return {@code true} if the type contains DIGIT, {@code false} otherwise
-     */
-    static boolean isDigit(int type) {
-        return (type & DIGIT) != 0;
-    }
-
-    /**
-     * Checks if the given word type includes {@link #SUBWORD_DELIM}
-     *
-     * @param type Word type to check
-     * @return {@code true} if the type contains SUBWORD_DELIM, {@code false} otherwise
-     */
-    static boolean isSubwordDelim(int type) {
-        return (type & SUBWORD_DELIM) != 0;
-    }
-
-    /**
-     * Checks if the given word type includes {@link #UPPER}
-     *
-     * @param type Word type to check
-     * @return {@code true} if the type contains UPPER, {@code false} otherwise
-     */
-    static boolean isUpper(int type) {
-        return (type & UPPER) != 0;
-    }
-
-    /**
      * Determines whether the given flag is set
      *
      * @param flag Flag to see if set
@@ -409,6 +407,17 @@ public final class WordDelimiterFilter2 extends TokenFilter implements WordDelim
      */
     private boolean has(int flag) {
         return (flags & flag) != 0;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        return object instanceof WordDelimiterFilter2 &&
+                iterator.equals(((WordDelimiterFilter2)object).iterator);
+    }
+
+    @Override
+    public int hashCode() {
+        return iterator.hashCode();
     }
 
     /**
@@ -428,7 +437,7 @@ public final class WordDelimiterFilter2 extends TokenFilter implements WordDelim
          * @param offset Offset in the concetenation to add the text
          * @param length Length of the text to append
          */
-        void append(char text[], int offset, int length) {
+        void append(char[] text, int offset, int length) {
             buffer.append(text, offset, length);
             subwordCount++;
         }
@@ -441,11 +450,9 @@ public final class WordDelimiterFilter2 extends TokenFilter implements WordDelim
             if (termAttribute.length() < buffer.length()) {
                 termAttribute.resizeBuffer(buffer.length());
             }
-            char termbuffer[] = termAttribute.buffer();
-
+            char[] termbuffer = termAttribute.buffer();
             buffer.getChars(0, buffer.length(), termbuffer, 0);
             termAttribute.setLength(buffer.length());
-
             if (hasIllegalOffsets) {
                 offsetAttribute.setOffset(savedStartOffset, savedEndOffset);
             } else {

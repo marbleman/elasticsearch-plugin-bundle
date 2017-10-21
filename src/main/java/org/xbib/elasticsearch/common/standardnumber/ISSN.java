@@ -1,25 +1,3 @@
-/*
- * Copyright (C) 2014 Jörg Prante
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published
- * by the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program; if not, see http://www.gnu.org/licenses
- * or write to the Free Software Foundation, Inc., 51 Franklin Street,
- * Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * The interactive user interfaces in modified source and object code
- * versions of this program must display Appropriate Legal Notices,
- * as required under Section 5 of the GNU Affero General Public License.
- *
- */
 package org.xbib.elasticsearch.common.standardnumber;
 
 import java.util.regex.Matcher;
@@ -53,32 +31,31 @@ import java.util.regex.Pattern;
  * may be an "X" if the result of the computing is equal to "10",
  * in order to avoid any ambiguity.
  *
- *  The ISSN is linked to a standardized form of the title of the
- *  identified serial, known as the "key title", which repeats
- *  the title of the publication, qualifying it with additional elements
- *  in order to distinguish it from other publications having identical
- *  titles.
+ * The ISSN is linked to a standardized form of the title of the
+ * identified serial, known as the "key title", which repeats
+ * the title of the publication, qualifying it with additional elements
+ * in order to distinguish it from other publications having identical
+ * titles.
  *
- *  If the title of the publication changes in any significant way,
- *  a new ISSN must be assigned in order to correspond to this new form
- *  of title and avoid any confusion. A serial publication whose
- *  title is modified several times in the course of its existence
- *  will be assigned each time a new ISSN, thus allowing precise
- *  identification of each form of the title : in fact it is then
- *  considered that they are different publications even if there
- *  is a logical link between them.
+ * If the title of the publication changes in any significant way,
+ * a new ISSN must be assigned in order to correspond to this new form
+ * of title and avoid any confusion. A serial publication whose
+ * title is modified several times in the course of its existence
+ * will be assigned each time a new ISSN, thus allowing precise
+ * identification of each form of the title : in fact it is then
+ * considered that they are different publications even if there
+ * is a logical link between them.
  *
- *  Contrary to other types of publications, the world of serial
- *  publications is particularly changeable and complex :
- *  the lifetime of a title may be extremely short; many publications
- *  may be part of a complex set of relationships, etc.
- *  These particularities themselves necessitated the introduction
- *  of the ISSN.
- *
+ * Contrary to other types of publications, the world of serial
+ * publications is particularly changeable and complex :
+ * the lifetime of a title may be extremely short; many publications
+ * may be part of a complex set of relationships, etc.
+ * These particularities themselves necessitated the introduction
+ * of the ISSN.
  */
 public class ISSN extends AbstractStandardNumber implements Comparable<ISSN>, StandardNumber {
 
-    private final static Pattern PATTERN = Pattern.compile("[0-9]{4}\\p{Pd}?[0-9]{3}[0-9xX]");
+    private static final Pattern PATTERN = Pattern.compile("[0-9]{4}\\p{Pd}?[0-9]{3}[0-9xX]");
 
     private String value;
 
@@ -121,7 +98,7 @@ public class ISSN extends AbstractStandardNumber implements Comparable<ISSN>, St
     }
 
     @Override
-    public ISSN verify() throws NumberFormatException {
+    public ISSN verify() {
         if (value == null || value.isEmpty()) {
             throw new NumberFormatException("invalid");
         }
@@ -133,6 +110,7 @@ public class ISSN extends AbstractStandardNumber implements Comparable<ISSN>, St
 
     /**
      * Returns the value representation of the standard number
+     *
      * @return value
      */
     @Override
@@ -178,7 +156,7 @@ public class ISSN extends AbstractStandardNumber implements Comparable<ISSN>, St
             checksum += weight * val;
         }
         int chk = checksum % 11;
-        char p = chk == 0 ? '0' : chk == 1 ? 'X' : (char)((11-chk) + '0');
+        char p = chk == 0 ? '0' : chk == 1 ? 'X' : (char) ((11 - chk) + '0');
         return p == Character.toUpperCase(value.charAt(l));
     }
 
@@ -195,4 +173,13 @@ public class ISSN extends AbstractStandardNumber implements Comparable<ISSN>, St
         return sb.toString();
     }
 
+    @Override
+    public boolean equals(Object object) {
+        return object instanceof ISSN && value.equals(((ISSN)object).value);
+    }
+
+    @Override
+    public int hashCode() {
+        return value.hashCode();
+    }
 }

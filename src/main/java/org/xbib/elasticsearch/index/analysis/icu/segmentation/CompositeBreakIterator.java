@@ -1,34 +1,33 @@
 package org.xbib.elasticsearch.index.analysis.icu.segmentation;
 
+import com.ibm.icu.lang.UCharacter;
+import com.ibm.icu.lang.UProperty;
 import com.ibm.icu.lang.UScript;
 import com.ibm.icu.text.BreakIterator;
 
 /**
  * An internal BreakIterator for multilingual text, following recommendations
  * from: UAX #29: Unicode Text Segmentation. (http://unicode.org/reports/tr29/)
- * <p/>
  * See http://unicode.org/reports/tr29/#Tailoring for the motivation of this
  * design.
- * <p/>
  * Text is first divided into script boundaries. The processing is then
  * delegated to the appropriate break iterator for that specific script.
- * <p/>
  * This break iterator also allows you to retrieve the ISO 15924 script code
  * associated with a piece of text.
- * <p/>
  * See also UAX #29, UTR #24
  */
 final class CompositeBreakIterator {
 
     private final IcuTokenizerConfig config;
 
-    private final BreakIteratorWrapper wordBreakers[] = new BreakIteratorWrapper[UScript.CODE_LIMIT];
-
-    private BreakIteratorWrapper rbbi;
+    private final BreakIteratorWrapper[] wordBreakers =
+            new BreakIteratorWrapper[UCharacter.getIntPropertyMaxValue(UProperty.SCRIPT)];
 
     private final ScriptIterator scriptIterator;
 
-    private char text[];
+    private BreakIteratorWrapper rbbi;
+
+    private char[] text;
 
     CompositeBreakIterator(IcuTokenizerConfig config) {
         this.config = config;
@@ -66,7 +65,7 @@ final class CompositeBreakIterator {
 
     /**
      * Retrieve the rule status code (token type) from the underlying break
-     * iterator
+     * iterator.
      *
      * @return rule status code (see RuleBasedBreakIterator constants)
      */
@@ -85,13 +84,13 @@ final class CompositeBreakIterator {
     }
 
     /**
-     * Set a new region of text to be examined by this iterator
+     * Set a new region of text to be examined by this iterator.
      *
      * @param text   buffer of text
      * @param start  offset into buffer
      * @param length maximum length to examine
      */
-    void setText(final char text[], int start, int length) {
+    void setText(final char[] text, int start, int length) {
         this.text = text;
         scriptIterator.setText(text, start, length);
         if (scriptIterator.next()) {

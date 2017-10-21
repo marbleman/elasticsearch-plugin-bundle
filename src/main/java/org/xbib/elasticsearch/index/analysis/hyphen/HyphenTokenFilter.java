@@ -1,93 +1,72 @@
-/*
- * Copyright (C) 2014 Jörg Prante
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published
- * by the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program; if not, see http://www.gnu.org/licenses
- * or write to the Free Software Foundation, Inc., 51 Franklin Street,
- * Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * The interactive user interfaces in modified source and object code
- * versions of this program must display Appropriate Legal Notices,
- * as required under Section 5 of the GNU Affero General Public License.
- *
- */
 package org.xbib.elasticsearch.index.analysis.hyphen;
 
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.tokenattributes.KeywordAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
-import org.apache.lucene.util.AttributeSource;
 
 import java.io.IOException;
-import java.util.Stack;
+import java.util.ArrayDeque;
+import java.util.Arrays;
+import java.util.Deque;
 import java.util.regex.Pattern;
 
 /**
  * The hyphen token filter removes hyphens in a token and builds an expanded token list
  * with unhyphenated words and the combined word fragments (decomposition).
- *
+ * <p>
  * No word fragment will be created if a word fragment length is 1.
- *
+ * <p>
  * It works best with the hyphen tokenizer, a tokenizer which preserves hyphens (and other sperataors) in words.
- *
+ * <p>
  * This is useful for german language analysis, where words in texts are often composed by adding hyphens between
  * words.
- *
+ * <p>
  * See also <a href="http://de.wikipedia.org/wiki/Viertelgeviertstrich">Viertelgeviertstrich</a>
- *
+ * <p>
  * Examples:
- *
+ * <p>
  * Bindestrich-Wort =&gt;
- *     Bindestrich-Wort, BindestrichWort, Wort, Bindestrich
- *
+ * Bindestrich-Wort, BindestrichWort, Wort, Bindestrich
+ * <p>
  * E-Book =&gt;
- *     E-Book, EBook, Book
- *
+ * E-Book, EBook, Book
+ * <p>
  * Service-Center-Mitarbeiterin =&gt;
- *    Service-Center-Mitarbeiterin,
- *    ServiceCenterMitarbeiterin,
- *    Mitarbeiterin,
- *    ServiceCenter,
- *    ServiceCenter-Mitarbeiterin,
- *    Center-Mitarbeiterin,
- *    Service
- *
- *
+ * Service-Center-Mitarbeiterin,
+ * ServiceCenterMitarbeiterin,
+ * Mitarbeiterin,
+ * ServiceCenter,
+ * ServiceCenter-Mitarbeiterin,
+ * Center-Mitarbeiterin,
+ * Service
  */
 public class HyphenTokenFilter extends TokenFilter {
 
-    // TODO use TypeAttribute, LETTER_COMP or something
-    private final static Pattern letter = Pattern.compile("\\p{L}+", Pattern.UNICODE_CHARACTER_CLASS);
-
-    final static char[] HYPHEN = new char[]{'-'};
-
+    static final char[] HYPHEN = {'-'};
+    // TODO(jprante) use TypeAttribute, LETTER_COMP or something
+    private static final Pattern letter = Pattern.compile("\\p{L}+", Pattern.UNICODE_CHARACTER_CLASS);
     private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
-
+    private final KeywordAttribute keywordAtt = addAttribute(KeywordAttribute.class);
     private final PositionIncrementAttribute posIncrAtt = addAttribute(PositionIncrementAttribute.class);
 
-    private final Stack<String> stack;
+    private final Deque<String> stack;
 
     private final char[] hyphenchars;
 
     private final boolean subwords;
 
-    private AttributeSource.State current;
+    private final boolean respectKeywords;
 
-    protected HyphenTokenFilter(TokenStream input, char[] hyphenchars, boolean subwords) {
+    private State current;
+
+    protected HyphenTokenFilter(TokenStream input, char[] hyphenchars, boolean subwords, boolean respectKeywords) {
         super(input);
-        this.stack = new Stack<String>();
+        this.stack = new ArrayDeque<>();
         this.hyphenchars = hyphenchars;
         this.subwords = subwords;
+        this.respectKeywords = respectKeywords;
     }
 
     @Override
@@ -101,6 +80,9 @@ public class HyphenTokenFilter extends TokenFilter {
         }
         if (!input.incrementToken()) {
             return false;
+        }
+        if (respectKeywords && keywordAtt.isKeyword()) {
+            return true;
         }
         if (addToStack()) {
             current = captureState();
@@ -116,15 +98,15 @@ public class HyphenTokenFilter extends TokenFilter {
                 continue;
             }
             if (subwords) {
-                String head = "";
+                StringBuilder head = new StringBuilder();
                 String tail;
                 while (pos > 0) {
-                    head = head + s.substring(0, pos);
+                    head.append(s.substring(0, pos));
                     tail = s.substring(pos + 1);
                     // only words, no numbers
                     if (letter.matcher(head).matches()) {
                         if (head.length() > 1) {
-                            stack.push(head);
+                            stack.push(head.toString());
                         }
                         stack.push(tail);
                         stack.push(head + tail);
@@ -139,4 +121,16 @@ public class HyphenTokenFilter extends TokenFilter {
         return !stack.isEmpty();
     }
 
+    @Override
+    public boolean equals(Object object) {
+        return object instanceof HyphenTokenFilter &&
+                Arrays.equals(hyphenchars, ((HyphenTokenFilter) object).hyphenchars) &&
+                Boolean.compare(subwords, ((HyphenTokenFilter) object).subwords) == 0 &&
+                Boolean.compare(respectKeywords, ((HyphenTokenFilter) object).respectKeywords) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(hyphenchars) ^ Boolean.hashCode(subwords) ^ Boolean.hashCode(respectKeywords);
+    }
 }

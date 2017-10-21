@@ -1,35 +1,10 @@
-/*
- * Copyright (C) 2015 Jörg Prante
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published
- * by the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program; if not, see http://www.gnu.org/licenses
- * or write to the Free Software Foundation, Inc., 51 Franklin Street,
- * Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * The interactive user interfaces in modified source and object code
- * versions of this program must display Appropriate Legal Notices,
- * as required under Section 5 of the GNU Affero General Public License.
- *
- */
 package org.xbib.elasticsearch.index.analysis.symbolname;
 
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PackedTokenAttributeImpl;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.ESLoggerFactory;
 
 import java.io.IOException;
 import java.nio.charset.CharacterCodingException;
@@ -39,15 +14,16 @@ import java.util.LinkedList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ *
+ */
 public class SymbolnameTokenFilter extends TokenFilter {
 
-    private final static ESLogger logger = ESLoggerFactory.getLogger(SymbolnameTokenFilter.class.getName());
+    private static final Pattern pattern = Pattern.compile("\\P{L}", Pattern.UNICODE_CHARACTER_CLASS);
 
     private final LinkedList<PackedTokenAttributeImpl> tokens;
 
     private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
-
-    private final OffsetAttribute offsetAtt = addAttribute(OffsetAttribute.class);
 
     private final PositionIncrementAttribute posIncAtt = addAttribute(PositionIncrementAttribute.class);
 
@@ -55,17 +31,18 @@ public class SymbolnameTokenFilter extends TokenFilter {
 
     protected SymbolnameTokenFilter(TokenStream input) {
         super(input);
-        this.tokens = new LinkedList<PackedTokenAttributeImpl>();
+        this.tokens = new LinkedList<>();
     }
 
     @Override
     public final boolean incrementToken() throws IOException {
         if (!tokens.isEmpty()) {
-            assert current != null;
+            if (current == null) {
+                throw new IllegalArgumentException("current is null");
+            }
             PackedTokenAttributeImpl token = tokens.removeFirst();
             restoreState(current);
             termAtt.setEmpty().append(token);
-            offsetAtt.setOffset(token.startOffset(), token.endOffset());
             posIncAtt.setPositionIncrement(0);
             return true;
         }
@@ -105,22 +82,28 @@ public class SymbolnameTokenFilter extends TokenFilter {
         while (m.find()) {
             String symbol = m.group();
             Character ch = symbol.charAt(0);
-            String symbolname = " __" + Character.getName(ch.charValue()).toUpperCase()
-                    .replaceAll("\\s","").replaceAll("\\-","") + "__";
+            String symbolname = " __" + Character.getName(ch).toUpperCase()
+                    .replaceAll("\\s", "").replaceAll("\\-", "") + "__";
             m.appendReplacement(sb, symbolname);
         }
         m.appendTail(sb);
         String variant = sb.toString().trim();
         if (!variant.equals(term)) {
             variants.add(variant);
-            if (variant.indexOf(' ') > 0) {
+            if (variant.indexOf(' ') >= 0) {
                 Collections.addAll(variants, variant.split("\\s"));
             }
         }
         return variants;
     }
 
+    @Override
+    public boolean equals(Object object) {
+        return object instanceof SymbolnameTokenFilter;
+    }
 
-    private final static Pattern pattern = Pattern.compile("\\P{L}", Pattern.UNICODE_CHARACTER_CLASS);
-
+    @Override
+    public int hashCode() {
+        return 0;
+    }
 }

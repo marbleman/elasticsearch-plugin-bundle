@@ -1,36 +1,14 @@
-/*
- * Copyright (C) 2014 Jörg Prante
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published
- * by the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program; if not, see http://www.gnu.org/licenses
- * or write to the Free Software Foundation, Inc., 51 Franklin Street,
- * Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * The interactive user interfaces in modified source and object code
- * versions of this program must display Appropriate Legal Notices,
- * as required under Section 5 of the GNU Affero General Public License.
- *
- */
 package org.xbib.elasticsearch.common.standardnumber;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- *  European Article Number is a 13-digit barcoding standard for marking products
- *  sold at retail point of sale.
+ * European Article Number is a 13-digit barcoding standard for marking products
+ * sold at retail point of sale.
  *
- *  Numbers encoded in UPC and EAN barcodes are known as
- *  Global Trade Item Numbers (GTIN).
+ * Numbers encoded in UPC and EAN barcodes are known as
+ * Global Trade Item Numbers (GTIN).
  */
 public class EAN extends AbstractStandardNumber implements Comparable<EAN>, StandardNumber {
 
@@ -77,12 +55,12 @@ public class EAN extends AbstractStandardNumber implements Comparable<EAN>, Stan
     }
 
     @Override
-    public EAN verify() throws NumberFormatException {
+    public EAN verify() {
         if (value == null || value.isEmpty()) {
-            throw new NumberFormatException("invalid");
+            throw new NumberFormatException("invalid value");
         }
         if (!check()) {
-            throw new NumberFormatException("bad checkum");
+            throw new NumberFormatException("bad checksum");
         }
         return this;
     }
@@ -97,6 +75,7 @@ public class EAN extends AbstractStandardNumber implements Comparable<EAN>, Stan
         return value;
     }
 
+    @Override
     public EAN reset() {
         this.value = null;
         this.createWithChecksum = false;
@@ -115,7 +94,7 @@ public class EAN extends AbstractStandardNumber implements Comparable<EAN>, Stan
         }
         int chk = 10 - checksum % 10;
         if (createWithChecksum) {
-            char ch = (char)('0' + chk);
+            char ch = (char) ('0' + chk);
             value = value.substring(0, l) + ch;
         }
         return chk == (value.charAt(l) - '0');
@@ -129,5 +108,15 @@ public class EAN extends AbstractStandardNumber implements Comparable<EAN>, Stan
             i = sb.indexOf(" ");
         }
         return sb.toString();
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        return object instanceof EAN && value.equals(((EAN)object).value);
+    }
+
+    @Override
+    public int hashCode() {
+        return value.hashCode();
     }
 }

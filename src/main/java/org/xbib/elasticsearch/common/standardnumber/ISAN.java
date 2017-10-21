@@ -1,25 +1,3 @@
-/*
- * Copyright (C) 2014 Jörg Prante
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published
- * by the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program; if not, see http://www.gnu.org/licenses
- * or write to the Free Software Foundation, Inc., 51 Franklin Street,
- * Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * The interactive user interfaces in modified source and object code
- * versions of this program must display Appropriate Legal Notices,
- * as required under Section 5 of the GNU Affero General Public License.
- *
- */
 package org.xbib.elasticsearch.common.standardnumber;
 
 import org.xbib.elasticsearch.common.standardnumber.check.iso7064.MOD3736;
@@ -57,11 +35,9 @@ import java.util.regex.Pattern;
 public class ISAN extends AbstractStandardNumber implements Comparable<ISAN>, StandardNumber {
 
     private static final Pattern PATTERN = Pattern.compile("[\\p{Alnum}\\p{Pd}]{16,34}");
-
+    private static final MOD3736 check = new MOD3736();
     private String value;
-
     private String formatted;
-
     private boolean versioned;
 
     @Override
@@ -101,8 +77,8 @@ public class ISAN extends AbstractStandardNumber implements Comparable<ISAN>, St
     }
 
     @Override
-    public ISAN verify() throws NumberFormatException {
-        if (value == null) {
+    public ISAN verify() {
+        if (value == null || value.isEmpty()) {
             throw new NumberFormatException();
         }
         if (!check()) {
@@ -134,12 +110,10 @@ public class ISAN extends AbstractStandardNumber implements Comparable<ISAN>, St
         return this;
     }
 
-    private final static MOD3736 check = new MOD3736();
-
     private boolean check() {
         if (versioned) {
-            int chk1 = value.length() >= 17 ? check.compute(value.substring(0,17)) : -1;
-            int chk2 = value.length() >= 26 ? check.compute(value.substring(0,16) + value.substring(17,26)) : -1;
+            int chk1 = value.length() >= 17 ? check.compute(value.substring(0, 17)) : -1;
+            int chk2 = value.length() >= 26 ? check.compute(value.substring(0, 16) + value.substring(17, 26)) : -1;
             if (chk1 != 1) {
                 return false;
             }
@@ -169,24 +143,34 @@ public class ISAN extends AbstractStandardNumber implements Comparable<ISAN>, St
         }
         this.formatted = "ISAN "
                 + (sb.length() < 4 ? sb :
-                    sb.substring(0,4) + "-"
-                + (sb.length() < 8 ? sb.substring(4) :
-                    sb.substring(4,8) + "-"
-                + (sb.length() < 12 ? sb.substring(8) :
-                    sb.substring(8,12) + "-"
-                + (sb.length() < 16 ? sb.substring(12) :
-                    sb.substring(12,16) + "-"
-                + (sb.length() < 17 ? sb.substring(16) :
-                    sb.substring(16,17))))));
+                sb.substring(0, 4) + "-"
+                        + (sb.length() < 8 ? sb.substring(4) :
+                        sb.substring(4, 8) + "-"
+                                + (sb.length() < 12 ? sb.substring(8) :
+                                sb.substring(8, 12) + "-"
+                                        + (sb.length() < 16 ? sb.substring(12) :
+                                        sb.substring(12, 16) + "-"
+                                                + (sb.length() < 17 ? sb.substring(16) :
+                                                sb.substring(16, 17))))));
         if (sb.length() > 17) {
             this.formatted = this.formatted + "-"
                     + (sb.length() < 21 ? sb.substring(17) :
-                      (sb.substring(17, 21) + "-"
-                    + (sb.length() < 25 ? sb.substring(21) :
-                      (sb.substring(21, 25)  + "-"
-                    + (sb.length() < 26 ? sb.substring(25) :
-                      sb.substring(25, 26))))));
+                    (sb.substring(17, 21) + "-"
+                            + (sb.length() < 25 ? sb.substring(21) :
+                            (sb.substring(21, 25) + "-"
+                                    + (sb.length() < 26 ? sb.substring(25) :
+                                    sb.substring(25, 26))))));
         }
         return sb.toString();
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        return object instanceof ISAN && value.equals(((ISAN)object).value);
+    }
+
+    @Override
+    public int hashCode() {
+        return value.hashCode();
     }
 }

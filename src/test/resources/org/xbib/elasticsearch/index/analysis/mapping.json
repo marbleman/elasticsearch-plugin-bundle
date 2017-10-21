@@ -1,0 +1,9 @@
+{
+  "date_detection": false,
+  "properties": {
+    "text": {
+      "type": "text",
+      "analyzer": "my_analyzer"
+    }
+  }
+}

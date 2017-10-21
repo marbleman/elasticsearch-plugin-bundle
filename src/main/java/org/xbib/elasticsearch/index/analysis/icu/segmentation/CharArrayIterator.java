@@ -3,13 +3,18 @@ package org.xbib.elasticsearch.index.analysis.icu.segmentation;
 import java.text.CharacterIterator;
 
 /**
- * Wraps a char[] as CharacterIterator for processing with a BreakIterator
+ * Wraps a char[] as CharacterIterator for processing with a BreakIterator.
  */
 final class CharArrayIterator implements CharacterIterator {
-    private char array[];
+
+    private char[] array;
+
     private int start;
+
     private int index;
+
     private int length;
+
     private int limit;
 
     public char[] getText() {
@@ -25,13 +30,13 @@ final class CharArrayIterator implements CharacterIterator {
     }
 
     /**
-     * Set a new region of text to be examined by this iterator
+     * Set a new region of text to be examined by this iterator.
      *
      * @param array  text buffer to examine
      * @param start  offset into buffer
      * @param length maximum length to examine
      */
-    void setText(final char array[], int start, int length) {
+    void setText(final char[] array, int start, int length) {
         this.array = array;
         this.start = start;
         this.index = start;
